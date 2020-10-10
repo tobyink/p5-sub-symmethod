@@ -4,3 +4,9 @@
 	issued  2020-10-10;
 	label   "Initial release".
 
+`Sub-SymMethod 0.002 cpan:TOBYINK`
+	issued  2020-10-10;
+	changeset [
+		item "Improve abstract for module."^^Documentation;
+		item "Issue a warning if you try creating a symmethod called `BUILD`, `DEMOLISH`, or `new` because that's probably a bad idea."^^Change;
+	].
