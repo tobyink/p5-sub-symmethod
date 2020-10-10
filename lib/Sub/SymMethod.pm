@@ -260,7 +260,7 @@ __END__
 
 =head1 NAME
 
-Sub::SymMethod - methods that act a little like BUILD and DEMOLISH
+Sub::SymMethod - symbiotic methods; methods that act a little like BUILD and DEMOLISH
 
 =head1 SYNOPSIS
 
