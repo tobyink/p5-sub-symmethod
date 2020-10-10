@@ -10,3 +10,9 @@
 		item "Improve abstract for module."^^Documentation;
 		item "Issue a warning if you try creating a symmethod called `BUILD`, `DEMOLISH`, or `new` because that's probably a bad idea."^^Change;
 	].
+
+`Sub-SymMethod 0.003 cpan:TOBYINK`
+	issued  2020-10-10;
+	changeset [
+		item "Add some version numbers for dependencies."^^Packaging;
+	].
