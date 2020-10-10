@@ -475,6 +475,8 @@ exception (which will be caught, and the symmethod will be safely skipped).
 If the arguments are good, it should return the list of arguments, possibly
 after some coercion or other processing.
 
+Using an arrayref signature requires L<Type::Params> to be installed.
+
 =head2 API
 
 Sub::SymMethod has an object oriented API for metaprogramming.

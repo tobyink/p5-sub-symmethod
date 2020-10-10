@@ -6,10 +6,12 @@
 	:runtime-requirement    [ :on "perl 5.008008"^^:CpanId ];
 	:runtime-requirement    [ :on "Exporter::Shiny"^^:CpanId ];
 	:runtime-requirement    [ :on "Role::Hooks"^^:CpanId ];
+	:runtime-recommendation [ :on "Type::Params"^^:CpanId ];
 	:test-requirement       [ :on "Test::More 0.96"^^:CpanId ];
 	:test-requirement       [ :on "parent"^^:CpanId ];
 	:test-requirement       [ :on "Role::Tiny"^^:CpanId ];
 	:test-requirement       [ :on "Types::Standard"^^:CpanId ];
+	:test-requirement       [ :on "Type::Params"^^:CpanId ];
 	:develop-recommendation [ :on "Dist::Inkt 0.001"^^:CpanId ];
 	.
 
