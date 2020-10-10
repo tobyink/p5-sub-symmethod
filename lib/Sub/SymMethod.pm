@@ -113,7 +113,7 @@ sub install_dispatcher {
 sub build_dispatcher {
 	my ( $class, $target, $name ) = ( shift, @_ );
 	
-	my $coderef = sub {
+	return sub {
 		my $specs = $class->get_all_symmethods( $_[0], $name );
 		my @results;
 		SPEC: for my $spec ( @$specs ) {
@@ -193,6 +193,7 @@ sub dispatch {
 	sub clear_cache {
 		my ( $class ) = ( shift );
 		delete $CACHE{$_} for @_;
+		return $class;
 	}
 	
 	sub get_all_symmethods {
@@ -215,6 +216,7 @@ sub dispatch {
 }
 
 sub compile_signature {
+	require Type::Params;
 	my ( $class, $spec ) = ( shift, @_ );
 	
 	my @sig = @{ delete $spec->{signature} };
@@ -222,10 +224,11 @@ sub compile_signature {
 	
 	$opt{subname} ||= sprintf( '%s::%s', $spec->{origin}, $spec->{name} );
 	
-	require Type::Params;
 	$spec->{signature} = $spec->{named}
 		? Type::Params::compile_named_oo( \%opt, @sig )
 		: Type::Params::compile( \%opt, @sig );
+	
+	return $class;
 }
 
 sub _generate_symmethod {
