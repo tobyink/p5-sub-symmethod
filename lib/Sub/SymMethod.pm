@@ -530,7 +530,7 @@ using C<is_dispatcher>.)
 Checks to see if C<< $coderef >> is a dispatcher.
 
 Can also be called as C<< is_dispatcher( $coderef, 0 ) >> or
-C<< C<< is_dispatcher( $coderef, 1 ) >> to teach it about a coderef.
+C<< is_dispatcher( $coderef, 1 ) >> to teach it about a coderef.
 
 =item C<< dispatch( $invocant, $name, @args ) >>
 
