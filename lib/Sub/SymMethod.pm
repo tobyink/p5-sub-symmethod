@@ -96,6 +96,11 @@ sub install_dispatcher {
 		Carp::carp("Symmethod $name overriding existing method for class $target");
 	}
 	
+	if ( $name eq 'BUILD' or $name eq 'DEMOLISH' or $name eq 'new' ) {
+		require Carp;
+		Carp::carp("Symmethod $name should probably be a plain method");
+	}
+	
 	my $coderef = $class->build_dispatcher( $target, $name );
 	my $qname   = "$target\::$name";
 	
