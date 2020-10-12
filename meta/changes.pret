@@ -16,3 +16,9 @@
 	changeset [
 		item "Add some version numbers for dependencies."^^Packaging;
 	].
+
+`Sub-SymMethod 0.004 cpan:TOBYINK`
+	issued  2020-10-12;
+	changeset [
+		item "Use `before_apply` instead of `after_apply` hook when copying symmethods from roles to classes."^^Change;
+	].
