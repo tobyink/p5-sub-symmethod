@@ -159,7 +159,7 @@ sub dispatch {
 		
 		return if $HOOKED{$target}++;
 		
-		'Role::Hooks'->after_apply( $target, sub {
+		'Role::Hooks'->before_apply( $target, sub {
 			my ( $role, $consumer ) = @_;
 			
 			if ( not 'Role::Hooks'->is_role($consumer) ) {
