@@ -524,7 +524,7 @@ This will also perform any needed cache invalidation.
 Builds a coderef that could potentially be installed into
 C<< *{"$target\::$name"} >> to be used as a dispatcher.
 
-=item C<< installer_dispatcher( $target, $name ) >>
+=item C<< install_dispatcher( $target, $name ) >>
 
 Builds a coderef that could potentially be installed into
 C<< *{"$target\::$name"} >> to be used as a dispatcher, and
