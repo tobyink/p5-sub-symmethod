@@ -38,16 +38,6 @@ jobs:
         with:
           name: dist
           path: ./
-      - name: Make distribution tarball
-        shell: bash
-        run: |
-          eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
-          ~/perl5/bin/distinkt-dist --TRAVIS --should_compress=1 --targetdir=Sub-SymMethod-latest
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: tarball
-          path: Sub-SymMethod-latest.tar.gz
   inspect:
     name: Inspect distribution
     needs: dist
