@@ -97,6 +97,8 @@ jobs:
             extra_dependencies: true
             extended_testing: 'extended'
             joblabel: '(Coverage)'
+          - { os: 'windows', perl: 'latest' }
+          - { os: 'windows', perl: '5.14' }
     steps:
       - name: Get dist artifact
         uses: actions/download-artifact@v2
