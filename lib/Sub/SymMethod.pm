@@ -11,6 +11,32 @@ use Exporter::Shiny our @EXPORT = qw( symmethod );
 use Scalar::Util qw( blessed );
 use Role::Hooks;
 
+# Options other than these will be passed through to
+# Type::Params.
+#
+my %KNOWN_OPTIONS = (
+	code               => 1,
+	name               => 1,
+	named              => 'legacy',
+	no_dispatcher      => 1,
+	no_hook            => 1,
+	order              => 1,
+	origin             => 1,
+	signature          => 'legacy',
+	signature_spec     => 1,
+);
+
+# But not these!
+#
+my %BAD_OPTIONS = (
+	want_details       => 1,
+	want_object        => 1,
+	want_source        => 1,
+	goto_next          => 1,
+	on_die             => 1,
+	message            => 1,
+);
+
 BEGIN {
 	eval  { require mro }
 	or do { require MRO::Compat };
@@ -46,12 +72,64 @@ BEGIN {
 	}
 }
 
+sub _extract_type_params_spec {
+	my ( $me, $target, $sub_name, $spec ) = ( shift, @_ );
+	
+	require Types::Standard;
+	
+	my %tp = ( method => 1 );
+	$tp{method} = $spec->{method} if defined $spec->{method};
+	
+	if ( Types::Standard::is_ArrayRef( $spec->{signature} ) ) {
+		my $key = $spec->{named} ? 'named' : 'positional';
+		$tp{$key} = delete $spec->{signature};
+	}
+	else {
+		$tp{named} = $spec->{named} if ref $spec->{named};
+	}
+	
+	# Options which are not known by this module must be intended for
+	# Type::Params instead.
+	for my $key ( keys %$spec ) {
+		
+		next if ( $KNOWN_OPTIONS{$key} or $key =~ /^_/ );
+		
+		if ( $BAD_OPTIONS{$key} ) {
+			require Carp;
+			Carp::carp( "Unsupported option: $key" );
+			next;
+		}
+		
+		$tp{$key} = delete $spec->{$key};
+	}
+	
+	$tp{package} ||= $target;
+	$tp{subname} ||= ref( $sub_name ) ? '__ANON__' : $sub_name;
+	
+	# Historically we allowed method=2, etc
+	if ( Types::Standard::is_Int( $tp{method} ) ) {
+		if ( $tp{method} > 1 ) {
+			my $excess = $tp{method} - 1;
+			$tp{method} = 1;
+			ref( $tp{head} ) ? push( @{ $tp{head} }, Types::Standard::Any() ) : ( $tp{head} += $excess );
+		}
+		if ( $tp{method} == 1 ) {
+			$tp{method} = Types::Standard::Any();
+		}
+	}
+	
+	$spec->{signature_spec} = \%tp
+		if $tp{positional} || $tp{pos} || $tp{named} || $tp{multiple} || $tp{multi};
+}
+
 sub install_symmethod {
 	my ( $class, $target, $name, %args ) = ( shift, @_ );
 	$args{origin} = $target unless exists $args{origin};
 	$args{method} = 1       unless exists $args{method};
 	$args{name}   = $name;
 	$args{order}  = 0       unless exists $args{order};
+	
+	$class->_extract_type_params_spec( $target, $name, \%args );
 	
 	if ( not is_CodeRef $args{code} ) {
 		require Carp;
@@ -122,7 +200,7 @@ sub build_dispatcher {
 		my $specs = $class->get_all_symmethods( $_[0], $name );
 		my @results;
 		SPEC: for my $spec ( @$specs ) {
-			if ( $spec->{signature} ) {
+			if ( $spec->{signature} or $spec->{signature_spec} ) {
 				$class->compile_signature($spec) unless is_CodeRef $spec->{signature};
 				my @orig = @_;
 				my @new;
@@ -221,54 +299,12 @@ sub dispatch {
 
 sub compile_signature {
 	my ( $class, $spec ) = ( shift, @_ );
-	
 	require Type::Params;
-	$spec->{signature} = Type::Params::signature(
-		$class->_clean_signature_spec_for_type_params( %$spec ),
-		'package' => $spec->{origin},
-		'subname' => $spec->{name},
-	);
-	
+	$class->_extract_type_params_spec( $spec->{origin}, $spec->{name}, $spec )
+		unless $spec->{signature_spec};
+	$spec->{signature} = Type::Params::signature( %{ $spec->{signature_spec} } )
+		if keys %{ $spec->{signature_spec} || {} };
 	return $class;
-}
-
-sub _clean_signature_spec_for_type_params {
-	my ( undef, %spec ) = ( shift, @_ );
-	my %cleaned = ( method => 1 );
-	
-	require Types::Standard;
-	
-	if ( $spec{signature} ) {
-		if ( delete $spec{named} ) {
-			$cleaned{named} = delete $spec{signature};
-		}
-		else {
-			$cleaned{positional} = delete $spec{signature};
-		}
-	}
-	
-	exists( $spec{$_} ) && ( $cleaned{$_} = delete $spec{$_} )
-		for qw(
-			positional pos named multiple multi
-			head tail method bless named_to_list
-		);
-	
-	delete $spec{$_} for qw(
-		code order name origin
-	);
-	
-	warn "Unrecognized option: $_" for sort keys %spec;
-	
-	# Historically we allowed method=2, etc
-	if ( Types::Standard::is_Int( $cleaned{method} ) ) {
-		if ( $cleaned{method} > 1 ) {
-			my $excess = $cleaned{method} - 1;
-			$cleaned{method} = 1;
-			ref( $cleaned{head} ) ? push( @{ $cleaned{head} }, Types::Standard::Any() ) : ( $cleaned{head} += $excess );
-		}
-	}
-	
-	return %cleaned;
 }
 
 sub _generate_symmethod {
@@ -409,9 +445,10 @@ Creates a symmethod.
 
 Creates a symmethod.
 
-The specification hash must contain a C<code> key, and may contain
-C<positional>, C<named>, and C<method> keys, which work the same as in
-L<Type::Params>. It may also include an C<order> key.
+The specification hash must contain a C<code> key, which must be a coderef.
+It may also include an C<order> key, which must be numeric. Any other
+keys are passed to C<signature> from L<Type::Params> to build a signature for
+the symmethod.
 
 =back
 
@@ -479,7 +516,8 @@ inherited from base/parent classes.
 
 =head2 Symmethods and Signatures
 
-When defining symmethods, you can define a signature:
+When defining symmethods, you can define a signature using the same
+options supported by C<signature> from L<Type::Params>.
 
   use Types::Standard 'Num';
   use Sub::SymMethod;
@@ -533,8 +571,9 @@ Installs a candidate method for a class or role.
 
 C<< $target >> is the class or role the candidate is being defined for.
 C<< $name >> is the name of the method. C<< %spec >> must include a
-C<code> key and optionally C<named>, C<signature>, C<method>, and
-C<order> keys.
+C<code> key and optionally an C<order> key. Any keys not directly supported
+by Sub::SymMethod will be passed through to Type::Params to provide a
+signature for the method.
 
 If C<< $target >> is a class, this will also install a dispatcher into
 the class. Passing C<< no_dispatcher => 1 >> in the spec will avoid this.
@@ -623,9 +662,7 @@ when dispatching.
 
 =item C<< compile_signature( \%spec ) >>
 
-When non-coderef signatures are found, this is called to compile them into
-a coderef. It is a small wrapper around L<Type::Params>. Modifies
-C<< %spec >> rather than returning a useful value.
+Does the job of finding keys within the spec to compile into a signature.
 
 =item C<< _generate_symmethod( $name, \%opts, \%globalopts ) >>
 
@@ -649,7 +686,7 @@ Toby Inkster E<lt>tobyink@cpan.orgE<gt>.
 
 =head1 COPYRIGHT AND LICENCE
 
-This software is copyright (c) 2020 by Toby Inkster.
+This software is copyright (c) 2020, 2022 by Toby Inkster.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
