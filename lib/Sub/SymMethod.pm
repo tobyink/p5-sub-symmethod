@@ -43,12 +43,14 @@ BEGIN {
 	
 	eval {
 		require Types::Standard;
-		'Types::Standard'->import(qw/ is_CodeRef is_HashRef /);
+		'Types::Standard'->import(qw/ is_CodeRef is_HashRef is_ArrayRef is_Int /);
 		1;
 	}
 	or do {
-		*is_CodeRef = sub { no warnings; ref($_[0]) eq 'CODE' };
-		*is_HashRef = sub { no warnings; ref($_[0]) eq 'HASH' };
+		*is_CodeRef  = sub { no warnings; ref($_[0]) eq 'CODE'  };
+		*is_HashRef  = sub { no warnings; ref($_[0]) eq 'HASH'  };
+		*is_ArrayRef = sub { no warnings; ref($_[0]) eq 'ARRAY' };
+		*is_Int      = sub { defined($_[0]) and !ref($_[0]) and $_[0] =~ /\A-[0-9]+\z/ };
 	};
 	
 	no strict 'refs';
@@ -75,12 +77,10 @@ BEGIN {
 sub _extract_type_params_spec {
 	my ( $me, $target, $sub_name, $spec ) = ( shift, @_ );
 	
-	require Types::Standard;
-	
 	my %tp = ( method => 1 );
 	$tp{method} = $spec->{method} if defined $spec->{method};
 	
-	if ( Types::Standard::is_ArrayRef( $spec->{signature} ) ) {
+	if ( is_ArrayRef $spec->{signature} ) {
 		my $key = $spec->{named} ? 'named' : 'positional';
 		$tp{$key} = delete $spec->{signature};
 	}
@@ -107,14 +107,12 @@ sub _extract_type_params_spec {
 	$tp{subname} ||= ref( $sub_name ) ? '__ANON__' : $sub_name;
 	
 	# Historically we allowed method=2, etc
-	if ( Types::Standard::is_Int( $tp{method} ) ) {
+	if ( is_Int $tp{method} ) {
 		if ( $tp{method} > 1 ) {
+			require Types::Standard;
 			my $excess = $tp{method} - 1;
 			$tp{method} = 1;
 			ref( $tp{head} ) ? push( @{ $tp{head} }, Types::Standard::Any() ) : ( $tp{head} += $excess );
-		}
-		if ( $tp{method} == 1 ) {
-			$tp{method} = Types::Standard::Any();
 		}
 	}
 	
