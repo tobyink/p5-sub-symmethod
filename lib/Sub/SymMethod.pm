@@ -125,14 +125,13 @@ sub build_dispatcher {
 			if ( $spec->{signature} ) {
 				$class->compile_signature($spec) unless is_CodeRef $spec->{signature};
 				my @orig = @_;
-				my @inv  = splice( @orig, 0, $spec->{method} );
 				my @new;
 				{
 					local $@;
 					eval{ @new = $spec->{signature}(@orig); 1 }
 						or next SPEC;
 				}
-				push @results, scalar $spec->{code}( @inv, @new );
+				push @results, scalar $spec->{code}( @new );
 				next SPEC;
 			}
 			
@@ -221,19 +220,55 @@ sub dispatch {
 }
 
 sub compile_signature {
-	require Type::Params;
 	my ( $class, $spec ) = ( shift, @_ );
 	
-	my @sig = @{ delete $spec->{signature} };
-	my %opt = is_HashRef($sig[0]) ? %{ shift @sig } : ();
-	
-	$opt{subname} ||= sprintf( '%s::%s', $spec->{origin}, $spec->{name} );
-	
-	$spec->{signature} = $spec->{named}
-		? Type::Params::compile_named_oo( \%opt, @sig )
-		: Type::Params::compile( \%opt, @sig );
+	require Type::Params;
+	$spec->{signature} = Type::Params::signature(
+		$class->_clean_signature_spec_for_type_params( %$spec ),
+		'package' => $spec->{origin},
+		'subname' => $spec->{name},
+	);
 	
 	return $class;
+}
+
+sub _clean_signature_spec_for_type_params {
+	my ( undef, %spec ) = ( shift, @_ );
+	my %cleaned = ( method => 1 );
+	
+	require Types::Standard;
+	
+	if ( $spec{signature} ) {
+		if ( delete $spec{named} ) {
+			$cleaned{named} = delete $spec{signature};
+		}
+		else {
+			$cleaned{positional} = delete $spec{signature};
+		}
+	}
+	
+	exists( $spec{$_} ) && ( $cleaned{$_} = delete $spec{$_} )
+		for qw(
+			positional pos named multiple multi
+			head tail method bless named_to_list
+		);
+	
+	delete $spec{$_} for qw(
+		code order name origin
+	);
+	
+	warn "Unrecognized option: $_" for sort keys %spec;
+	
+	# Historically we allowed method=2, etc
+	if ( Types::Standard::is_Int( $cleaned{method} ) ) {
+		if ( $cleaned{method} > 1 ) {
+			my $excess = $cleaned{method} - 1;
+			$cleaned{method} = 1;
+			ref( $cleaned{head} ) ? push( @{ $cleaned{head} }, Types::Standard::Any() ) : ( $cleaned{head} += $excess );
+		}
+	}
+	
+	return %cleaned;
 }
 
 sub _generate_symmethod {
@@ -375,8 +410,8 @@ Creates a symmethod.
 Creates a symmethod.
 
 The specification hash must contain a C<code> key, and may contain
-C<signature>, C<named>, and C<method> keys, which work the same as in
-L<Sub::MultiMethod>. It may also include an C<order> key.
+C<positional>, C<named>, and C<method> keys, which work the same as in
+L<Type::Params>. It may also include an C<order> key.
 
 =back
 
@@ -450,17 +485,16 @@ When defining symmethods, you can define a signature:
   use Sub::SymMethod;
   
   symmethod foo => (
-    signature => [ Num ],
-    code      => sub {
+    positional => [ Num ],
+    code       => sub {
       my ( $self, $num ) = @_;
       print $num, "\n";
     },
   );
   
   symmethod foo => (
-    named     => 1,
-    signature => [ mynum => Num ],
-    code      => sub {
+    named => [ mynum => Num ],
+    code  => sub {
       my ( $self, $arg ) = @_;
       print $arg->mynum, "\n";
     },
@@ -475,15 +509,7 @@ signature.
 The coderef given in C<code> receives the list of arguments I<after> they've
 been passed through the signature, which may coerce them, etc.
 
-Instead of an arrayref (which will be treated as a signature using
-L<Type::Params> C<compile> or C<compile_named_oo>), you can provide a
-signature as a coderef. The coderef will be passed a list of argument to
-the symmethod to be checked. If the arguments are bad, it should throw an
-exception (which will be caught, and the symmethod will be safely skipped).
-If the arguments are good, it should return the list of arguments, possibly
-after some coercion or other processing.
-
-Using an arrayref signature requires L<Type::Params> to be installed.
+Using a signature requires L<Type::Params> to be installed.
 
 =head2 API
 
