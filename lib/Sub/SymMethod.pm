@@ -112,7 +112,7 @@ sub _extract_type_params_spec {
 			require Types::Standard;
 			my $excess = $tp{method} - 1;
 			$tp{method} = 1;
-			ref( $tp{head} ) ? push( @{ $tp{head} }, Types::Standard::Any() ) : ( $tp{head} += $excess );
+			ref( $tp{head} ) ? push( @{ $tp{head} }, ( Types::Standard::Any() ) x $excess ) : ( $tp{head} += $excess );
 		}
 	}
 	
