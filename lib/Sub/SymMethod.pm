@@ -5,7 +5,7 @@ use warnings;
 package Sub::SymMethod;
 
 our $AUTHORITY = 'cpan:TOBYINK';
-our $VERSION   = '0.005';
+our $VERSION   = '1.000';
 
 use Exporter::Shiny our @EXPORT = qw( symmethod );
 use Scalar::Util qw( blessed );
