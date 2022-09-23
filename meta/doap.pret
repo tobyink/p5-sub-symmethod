@@ -7,7 +7,7 @@
 	:shortdesc            "symbiotic method; methods that act a little like BUILD and DEMOLISH";
 	:homepage             <https://metacpan.org/release/Sub-SymMethod>;
 	:download-page        <https://metacpan.org/release/Sub-SymMethod>;
-	:bug-database         <http://rt.cpan.org/Dist/Display.html?Queue=Sub-SymMethod>;
+	:bug-database         <https://github.com/tobyink/p5-sub-symmethod/issues>;
 	:repository           [ a :GitRepository; :browse <https://github.com/tobyink/p5-sub-symmethod> ];
 	:created              2020-10-09;
 	:license              <http://dev.perl.org/licenses/>;
