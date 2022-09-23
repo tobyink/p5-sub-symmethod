@@ -674,7 +674,7 @@ into the called as C<symmethod>.
 =head1 BUGS
 
 Please report any bugs to
-L<http://rt.cpan.org/Dist/Display.html?Queue=Sub-SymMethod>.
+L<https://github.com/tobyink/p5-sub-symmethod/issues>.
 
 =head1 SEE ALSO
 
